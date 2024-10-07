@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+option go_package = "grpc-intro/invoicer";
+
+message Dihadi {
+    int32 paisa = 1;
+    string kaam = 2;
+}
+
+message CreateRequest {
+    Dihadi dihadi = 1;
+    string kisse = 2;
+    string kisko = 3;
+}
+
+message CreateResponse {
+    bytes pdf = 1;
+    bytes docx = 2;
+}
+
+service Invoicer {
+    rpc Create(CreateRequest) returns (CreateResponse);
+}
