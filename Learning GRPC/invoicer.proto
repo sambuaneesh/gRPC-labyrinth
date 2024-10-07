@@ -14,8 +14,8 @@ message CreateRequest {
 }
 
 message CreateResponse {
-    bytes pdf = 1;
-    bytes docx = 2;
+    string message = 1;
+    int32 paisa = 2;
 }
 
 service Invoicer {
