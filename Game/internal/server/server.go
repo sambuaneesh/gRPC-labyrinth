@@ -127,6 +127,54 @@ func (s *GameServer) RegisterMove(ctx context.Context, req *pb.RegisterMoveReque
 	}
 }
 
+func (s *GameServer) Revelio(req *pb.RevelioRequest, stream pb.LabyrinthGame_RevelioServer) error {
+	targetX := int(req.Target.X)
+	targetY := int(req.Target.Y)
+	tileType := game.TileType(req.TileType)
+
+	if s.Player.RemainingSpells == 0 {
+		return fmt.Errorf("no remaining spells")
+	}
+
+	s.Player.RemainingSpells--
+
+	// Check if the target position is valid
+	if !s.Labyrinth.IsValidPosition(game.Position{X: targetX, Y: targetY}) {
+		return fmt.Errorf("invalid target position")
+	}
+
+	// checking the target tile type
+	if s.Labyrinth.GetTile(game.Position{X: targetX, Y: targetY}).Type == tileType {
+		if err := stream.Send(&pb.RevelioResponse{
+			Position: &pb.Position{X: int32(targetX), Y: int32(targetY)},
+		}); err != nil {
+			return err
+		}
+	}
+
+	// defining for surrounding tiles
+	directions := []game.Position{
+		{X: -1, Y: -1}, {X: 0, Y: -1}, {X: 1, Y: -1},
+		{X: -1, Y: 0}, {X: 1, Y: 0},
+		{X: -1, Y: 1}, {X: 0, Y: 1}, {X: 1, Y: 1},
+	}
+
+	for _, dir := range directions {
+		newX, newY := targetX+dir.X, targetY+dir.Y
+		pos := game.Position{X: newX, Y: newY}
+
+		if s.Labyrinth.IsValidPosition(pos) && s.Labyrinth.GetTile(pos).Type == tileType {
+			if err := stream.Send(&pb.RevelioResponse{
+				Position: &pb.Position{X: int32(newX), Y: int32(newY)},
+			}); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
 func (s *GameServer) PrintLabyrinth() {
 	fmt.Print("\n+")
 	for i := 0; i < s.Labyrinth.Width; i++ {
