@@ -5,13 +5,13 @@ type Position struct {
 }
 
 const (
-	UP    = "up"
-	DOWN  = "down"
-	LEFT  = "left"
-	RIGHT = "right"
+	UP Direction = iota
+	DOWN
+	LEFT
+	RIGHT
 )
 
-type Direction string
+type Direction int
 
 type Player struct {
 	Score           int
