@@ -1,0 +1,101 @@
+syntax = "proto3";
+
+package labyrinth;
+
+// -------------------------------------------------------------------------------------------------
+// # GetLabyrinthInfo
+// Take an empty request and provide the width and height of the Labyrinth.
+message GetLabyrinthInfoRequest {}
+
+message GetLabyrinthInfoResponse {
+    int32 width = 1;
+    int32 height = 2;
+}
+
+// -------------------------------------------------------------------------------------------------
+// # GetPlayerStatus
+// Take an empty request and provide the player’s score, health points, current position 
+// in the Labyrinth and the number of remaining spells
+message GetPlayerStatusRequest {}
+
+message GetPlayerStatusResponse {
+    int32 score = 1;
+    int32 health = 2;
+    Position position = 3;
+    int32 remaining_spells = 4;
+}
+
+message Position {
+    int32 x = 1;
+    int32 y = 2;
+}
+
+// -------------------------------------------------------------------------------------------------
+// # RegisterMove
+// Take a request containing the desired direction to move and move the player in that
+// direction. Provide the status of the move informing the client whether the move 
+// 1. was a success, 2. was a failure, 3. lead to victory or 4. resulted in player death.
+message RegisterMoveRequest {
+    Direction direction = 1;
+}
+
+message RegisterMoveResponse {
+    MoveStatus status = 1;
+}
+
+enum Direction {
+    UP = 0;
+    DOWN = 1;
+    LEFT = 2;
+    RIGHT = 3;
+}
+
+enum MoveStatus {
+    SUCCESS = 0;
+    FAILURE = 1;
+    VICTORY = 2;
+    DEATH = 3;
+}
+
+// -------------------------------------------------------------------------------------------------
+// # Revelio
+// Take a request containing the target position of the spell and the desired tile type. 
+// Provide a stream of positions of all the tiles surrounding the target tile having the same 
+// tile type as the one in the request. Note that the target tile is also included under the 
+// spell effect.
+message RevelioRequest {
+    Position target = 1;
+    TileType tile_type = 2;
+}
+
+enum TileType {
+    EMPTY = 0;
+    WALL = 1;
+    COIN = 2;
+}
+
+message RevelioResponse {
+    repeated Position positions = 1;
+}
+
+// -------------------------------------------------------------------------------------------------
+// # Bombarda
+// Take a stream of target positions as input. Destroy anything that may be present on
+// the target tiles (wall or coin), converting them into an empty tile.
+message BombardaRequest {
+    repeated Position target = 1;
+}
+
+message BombardaResponse {
+    bool success = 1;
+}
+
+// -------------------------------------------------------------------------------------------------
+// # Services
+service LabyrinthGame {
+    rpc GetLabyrinthInfo(GetLabyrinthInfoRequest) returns (GetLabyrinthInfoResponse);
+    rpc GetPlayerStatus(GetPlayerStatusRequest) returns (GetPlayerStatusResponse);
+    rpc RegisterMove(RegisterMoveRequest) returns (RegisterMoveResponse);
+    rpc Revelio(stream RevelioRequest) returns (stream RevelioResponse);
+    rpc Bombarda(stream BombardaRequest) returns (stream BombardaResponse);
+}
