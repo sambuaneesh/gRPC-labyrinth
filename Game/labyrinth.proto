@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package labyrinth;
+option go_package = "./labyrinth";
 
 // -------------------------------------------------------------------------------------------------
 // # GetLabyrinthInfo
