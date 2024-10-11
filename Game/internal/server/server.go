@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"labyrinth/internal/game"
 	labyrinth "labyrinth/protofiles"
 	pb "labyrinth/protofiles"
@@ -31,11 +32,16 @@ func NewGameServer() (*GameServer, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &GameServer{
+
+	player := game.NewPlayer()
+
+	GameServer := &GameServer{
 		Labyrinth: labyrinth,
-		Player:    game.NewPlayer(),
+		Player:    player,
 		Status:    Running,
-	}, nil
+	}
+	GameServer.PrintLabyrinth()
+	return GameServer, nil
 }
 
 func (s *GameServer) GetLabyrinthInfo(ctx context.Context, req *pb.GetLabyrinthInfoRequest) (*pb.GetLabyrinthInfoResponse, error) {
@@ -59,9 +65,15 @@ func (s *GameServer) RegisterMove(ctx context.Context, req *pb.RegisterMoveReque
 	lab := s.Labyrinth
 	initialPosition := player.Position
 
-	if s.Status == Death || s.Status == Win {
+	if s.Status == Death {
+		s.PrintLabyrinth()
 		return &pb.RegisterMoveResponse{
-			Status: pb.MoveStatus_FAILURE,
+			Status: pb.MoveStatus_DEATH,
+		}, nil
+	} else if s.Status == Win {
+		s.PrintLabyrinth()
+		return &pb.RegisterMoveResponse{
+			Status: pb.MoveStatus_VICTORY,
 		}, nil
 	}
 
@@ -71,6 +83,7 @@ func (s *GameServer) RegisterMove(ctx context.Context, req *pb.RegisterMoveReque
 	// victory condition
 	if newPosition.X == lab.Width-1 && newPosition.Y == lab.Height-1 {
 		s.Status = Win
+		s.PrintLabyrinth()
 		return &pb.RegisterMoveResponse{
 			Status: pb.MoveStatus_VICTORY,
 		}, nil
@@ -80,32 +93,73 @@ func (s *GameServer) RegisterMove(ctx context.Context, req *pb.RegisterMoveReque
 	case game.Coin:
 		player.CollectCoin()
 		lab.SetTile(newPosition, game.Tile{Type: game.Empty})
+		s.PrintLabyrinth()
 		return &pb.RegisterMoveResponse{
 			Status: pb.MoveStatus_SUCCESS,
 		}, nil
 
 	case game.Wall:
 		player.LoseHealth()
+		player.SetPosition(initialPosition)
 		if player.Health == 0 {
 			s.Status = Death
+			s.PrintLabyrinth()
 			return &pb.RegisterMoveResponse{
 				Status: pb.MoveStatus_DEATH,
 			}, nil
 		}
-		player.SetPosition(initialPosition)
+		s.PrintLabyrinth()
 		return &pb.RegisterMoveResponse{
 			Status: pb.MoveStatus_FAILURE,
 		}, nil
 
 	case game.Empty:
+		s.PrintLabyrinth()
 		return &pb.RegisterMoveResponse{
 			Status: pb.MoveStatus_SUCCESS,
 		}, nil
 
 	default:
+		s.PrintLabyrinth()
 		return &pb.RegisterMoveResponse{
 			Status: pb.MoveStatus_FAILURE,
 		}, nil
+	}
+}
+
+func (s *GameServer) PrintLabyrinth() {
+	fmt.Print("\n+")
+	for i := 0; i < s.Labyrinth.Width; i++ {
+		fmt.Print("--+")
+	}
+	fmt.Println()
+
+	for y, row := range s.Labyrinth.Tiles {
+		fmt.Print("|")
+		for x, tile := range row {
+			if x == s.Player.Position.X && y == s.Player.Position.Y {
+				fmt.Print("🧙")
+			} else {
+				switch tile.Type {
+				case game.Empty:
+					fmt.Print("  ")
+				case game.Wall:
+					fmt.Print("🧱")
+				case game.Coin:
+					fmt.Print("💰")
+				default:
+					fmt.Print("❓")
+				}
+			}
+			fmt.Print("|")
+		}
+		fmt.Println()
+
+		fmt.Print("+")
+		for i := 0; i < s.Labyrinth.Width; i++ {
+			fmt.Print("--+")
+		}
+		fmt.Println()
 	}
 }
 
