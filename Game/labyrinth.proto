@@ -75,7 +75,7 @@ enum TileType {
 }
 
 message RevelioResponse {
-    repeated Position positions = 1;
+    Position position = 1;
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -83,11 +83,12 @@ message RevelioResponse {
 // Take a stream of target positions as input. Destroy anything that may be present on
 // the target tiles (wall or coin), converting them into an empty tile.
 message BombardaRequest {
-    repeated Position target = 1;
+    Position target = 1;
 }
 
 message BombardaResponse {
     bool success = 1;
+    Position affected_position = 2;
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -96,6 +97,6 @@ service LabyrinthGame {
     rpc GetLabyrinthInfo(GetLabyrinthInfoRequest) returns (GetLabyrinthInfoResponse);
     rpc GetPlayerStatus(GetPlayerStatusRequest) returns (GetPlayerStatusResponse);
     rpc RegisterMove(RegisterMoveRequest) returns (RegisterMoveResponse);
-    rpc Revelio(stream RevelioRequest) returns (stream RevelioResponse);
+    rpc Revelio(RevelioRequest) returns (stream RevelioResponse);
     rpc Bombarda(stream BombardaRequest) returns (stream BombardaResponse);
 }
