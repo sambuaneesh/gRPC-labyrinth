@@ -30,3 +30,15 @@ To run the server, you run:
 cd bin
 ./server
 ```
+
+To run the client first you need to install the dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+Then you can run the client:
+
+```bash
+python client/client.py
+```
