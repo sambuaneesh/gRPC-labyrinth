@@ -36,3 +36,4 @@ cleango:
 
 clean: cleanpy cleango
 	rm -rf generated
+	rm -rf bin
