@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"labyrinth/internal/game"
 	labyrinth "labyrinth/protofiles"
 	pb "labyrinth/protofiles"
@@ -175,7 +176,58 @@ func (s *GameServer) Revelio(req *pb.RevelioRequest, stream pb.LabyrinthGame_Rev
 	return nil
 }
 
+func (s *GameServer) Bombarda(stream pb.LabyrinthGame_BombardaServer) error {
+	const maxEffects = 3
+	effectCount := 0
+
+	if s.Player.RemainingSpells == 0 {
+		return fmt.Errorf("no remaining spells")
+	}
+
+	for {
+		req, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+
+		targetX := int(req.Target.X)
+		targetY := int(req.Target.Y)
+		targetPos := game.Position{X: targetX, Y: targetY}
+
+		success := false
+		if effectCount < maxEffects && s.Labyrinth.IsValidPosition(targetPos) {
+			currentTile := s.Labyrinth.GetTile(targetPos)
+			if currentTile.Type == game.Wall || currentTile.Type == game.Coin {
+				s.Labyrinth.SetTile(targetPos, game.Tile{Type: game.Empty})
+				success = true
+				effectCount++
+			}
+		}
+
+		response := &pb.BombardaResponse{
+			Success:          success,
+			AffectedPosition: &pb.Position{X: int32(targetX), Y: int32(targetY)},
+		}
+
+		if err := stream.Send(response); err != nil {
+			return err
+		}
+
+		if success {
+			s.PrintLabyrinth()
+		}
+	}
+
+	s.Player.RemainingSpells--
+	return nil
+}
+
 func (s *GameServer) PrintLabyrinth() {
+	// clear the console
+	fmt.Print("\033[H\033[2J")
 	fmt.Print("\n+")
 	for i := 0; i < s.Labyrinth.Width; i++ {
 		fmt.Print("--+")
