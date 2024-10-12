@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             v5.28.2
-// source: labyrinth.proto
+// source: proto/labyrinth.proto
 
 package labyrinth
 
@@ -273,5 +273,5 @@ var LabyrinthGame_ServiceDesc = grpc.ServiceDesc{
 			ClientStreams: true,
 		},
 	},
-	Metadata: "labyrinth.proto",
+	Metadata: "proto/labyrinth.proto",
 }

@@ -33,7 +33,7 @@ func GenerateLabyrinth(width int, height int) [][]game.Tile {
 	labyrinth[height-1][width-1] = game.Tile{Type: game.Empty}
 
 	// Export to file
-	ExportLabyrinth(labyrinth, "../../server/labyrinth.txt")
+	ExportLabyrinth(labyrinth, "./cmd/server/labyrinth.txt")
 
 	return labyrinth
 }

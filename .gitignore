@@ -1,1 +1,4 @@
 labyrinth.txt
+bin/
+__pycache__/
+venv/

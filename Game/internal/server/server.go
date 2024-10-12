@@ -1,16 +1,11 @@
-package main
+package server
 
 import (
 	"context"
 	"fmt"
 	"io"
+	"labyrinth/generated/go/labyrinth"
 	"labyrinth/internal/game"
-	labyrinth "labyrinth/protofiles"
-	pb "labyrinth/protofiles"
-	"log"
-	"net"
-
-	"google.golang.org/grpc"
 )
 
 type GameStatus int
@@ -45,36 +40,36 @@ func NewGameServer() (*GameServer, error) {
 	return GameServer, nil
 }
 
-func (s *GameServer) GetLabyrinthInfo(ctx context.Context, req *pb.GetLabyrinthInfoRequest) (*pb.GetLabyrinthInfoResponse, error) {
-	return &pb.GetLabyrinthInfoResponse{
+func (s *GameServer) GetLabyrinthInfo(ctx context.Context, req *labyrinth.GetLabyrinthInfoRequest) (*labyrinth.GetLabyrinthInfoResponse, error) {
+	return &labyrinth.GetLabyrinthInfoResponse{
 		Width:  int32(s.Labyrinth.Width),
 		Height: int32(s.Labyrinth.Height),
 	}, nil
 }
 
-func (s *GameServer) GetPlayerStatus(ctx context.Context, req *pb.GetPlayerStatusRequest) (*pb.GetPlayerStatusResponse, error) {
-	return &pb.GetPlayerStatusResponse{
+func (s *GameServer) GetPlayerStatus(ctx context.Context, req *labyrinth.GetPlayerStatusRequest) (*labyrinth.GetPlayerStatusResponse, error) {
+	return &labyrinth.GetPlayerStatusResponse{
 		Score:           int32(s.Player.Score),
 		Health:          int32(s.Player.Health),
-		Position:        &pb.Position{X: int32(s.Player.Position.X), Y: int32(s.Player.Position.Y)},
+		Position:        &labyrinth.Position{X: int32(s.Player.Position.X), Y: int32(s.Player.Position.Y)},
 		RemainingSpells: int32(s.Player.RemainingSpells),
 	}, nil
 }
 
-func (s *GameServer) RegisterMove(ctx context.Context, req *pb.RegisterMoveRequest) (*pb.RegisterMoveResponse, error) {
+func (s *GameServer) RegisterMove(ctx context.Context, req *labyrinth.RegisterMoveRequest) (*labyrinth.RegisterMoveResponse, error) {
 	player := s.Player
 	lab := s.Labyrinth
 	initialPosition := player.Position
 
 	if s.Status == Death {
 		s.PrintLabyrinth()
-		return &pb.RegisterMoveResponse{
-			Status: pb.MoveStatus_DEATH,
+		return &labyrinth.RegisterMoveResponse{
+			Status: labyrinth.MoveStatus_DEATH,
 		}, nil
 	} else if s.Status == Win {
 		s.PrintLabyrinth()
-		return &pb.RegisterMoveResponse{
-			Status: pb.MoveStatus_VICTORY,
+		return &labyrinth.RegisterMoveResponse{
+			Status: labyrinth.MoveStatus_VICTORY,
 		}, nil
 	}
 
@@ -85,8 +80,8 @@ func (s *GameServer) RegisterMove(ctx context.Context, req *pb.RegisterMoveReque
 	if newPosition.X == lab.Width-1 && newPosition.Y == lab.Height-1 {
 		s.Status = Win
 		s.PrintLabyrinth()
-		return &pb.RegisterMoveResponse{
-			Status: pb.MoveStatus_VICTORY,
+		return &labyrinth.RegisterMoveResponse{
+			Status: labyrinth.MoveStatus_VICTORY,
 		}, nil
 	}
 
@@ -95,8 +90,8 @@ func (s *GameServer) RegisterMove(ctx context.Context, req *pb.RegisterMoveReque
 		player.CollectCoin()
 		lab.SetTile(newPosition, game.Tile{Type: game.Empty})
 		s.PrintLabyrinth()
-		return &pb.RegisterMoveResponse{
-			Status: pb.MoveStatus_SUCCESS,
+		return &labyrinth.RegisterMoveResponse{
+			Status: labyrinth.MoveStatus_SUCCESS,
 		}, nil
 
 	case game.Wall:
@@ -105,30 +100,30 @@ func (s *GameServer) RegisterMove(ctx context.Context, req *pb.RegisterMoveReque
 		if player.Health == 0 {
 			s.Status = Death
 			s.PrintLabyrinth()
-			return &pb.RegisterMoveResponse{
-				Status: pb.MoveStatus_DEATH,
+			return &labyrinth.RegisterMoveResponse{
+				Status: labyrinth.MoveStatus_DEATH,
 			}, nil
 		}
 		s.PrintLabyrinth()
-		return &pb.RegisterMoveResponse{
-			Status: pb.MoveStatus_FAILURE,
+		return &labyrinth.RegisterMoveResponse{
+			Status: labyrinth.MoveStatus_FAILURE,
 		}, nil
 
 	case game.Empty:
 		s.PrintLabyrinth()
-		return &pb.RegisterMoveResponse{
-			Status: pb.MoveStatus_SUCCESS,
+		return &labyrinth.RegisterMoveResponse{
+			Status: labyrinth.MoveStatus_SUCCESS,
 		}, nil
 
 	default:
 		s.PrintLabyrinth()
-		return &pb.RegisterMoveResponse{
-			Status: pb.MoveStatus_FAILURE,
+		return &labyrinth.RegisterMoveResponse{
+			Status: labyrinth.MoveStatus_FAILURE,
 		}, nil
 	}
 }
 
-func (s *GameServer) Revelio(req *pb.RevelioRequest, stream pb.LabyrinthGame_RevelioServer) error {
+func (s *GameServer) Revelio(req *labyrinth.RevelioRequest, stream labyrinth.LabyrinthGame_RevelioServer) error {
 	targetX := int(req.Target.X)
 	targetY := int(req.Target.Y)
 	tileType := game.TileType(req.TileType)
@@ -146,8 +141,8 @@ func (s *GameServer) Revelio(req *pb.RevelioRequest, stream pb.LabyrinthGame_Rev
 
 	// checking the target tile type
 	if s.Labyrinth.GetTile(game.Position{X: targetX, Y: targetY}).Type == tileType {
-		if err := stream.Send(&pb.RevelioResponse{
-			Position: &pb.Position{X: int32(targetX), Y: int32(targetY)},
+		if err := stream.Send(&labyrinth.RevelioResponse{
+			Position: &labyrinth.Position{X: int32(targetX), Y: int32(targetY)},
 		}); err != nil {
 			return err
 		}
@@ -165,8 +160,8 @@ func (s *GameServer) Revelio(req *pb.RevelioRequest, stream pb.LabyrinthGame_Rev
 		pos := game.Position{X: newX, Y: newY}
 
 		if s.Labyrinth.IsValidPosition(pos) && s.Labyrinth.GetTile(pos).Type == tileType {
-			if err := stream.Send(&pb.RevelioResponse{
-				Position: &pb.Position{X: int32(newX), Y: int32(newY)},
+			if err := stream.Send(&labyrinth.RevelioResponse{
+				Position: &labyrinth.Position{X: int32(newX), Y: int32(newY)},
 			}); err != nil {
 				return err
 			}
@@ -176,7 +171,7 @@ func (s *GameServer) Revelio(req *pb.RevelioRequest, stream pb.LabyrinthGame_Rev
 	return nil
 }
 
-func (s *GameServer) Bombarda(stream pb.LabyrinthGame_BombardaServer) error {
+func (s *GameServer) Bombarda(stream labyrinth.LabyrinthGame_BombardaServer) error {
 	const maxEffects = 3
 	effectCount := 0
 
@@ -207,9 +202,9 @@ func (s *GameServer) Bombarda(stream pb.LabyrinthGame_BombardaServer) error {
 			}
 		}
 
-		response := &pb.BombardaResponse{
+		response := &labyrinth.BombardaResponse{
 			Success:          success,
-			AffectedPosition: &pb.Position{X: int32(targetX), Y: int32(targetY)},
+			AffectedPosition: &labyrinth.Position{X: int32(targetX), Y: int32(targetY)},
 		}
 
 		if err := stream.Send(response); err != nil {
@@ -260,21 +255,5 @@ func (s *GameServer) PrintLabyrinth() {
 			fmt.Print("--+")
 		}
 		fmt.Println()
-	}
-}
-
-func main() {
-	lis, err := net.Listen("tcp", ":8080")
-	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
-	}
-	serverRegistrar := grpc.NewServer()
-	service, err := NewGameServer()
-	if err != nil {
-		log.Fatalf("failed to create game server: %v", err)
-	}
-	pb.RegisterLabyrinthGameServer(serverRegistrar, service)
-	if err := serverRegistrar.Serve(lis); err != nil {
-		log.Fatalf("failed to serve: %v", err)
 	}
 }
